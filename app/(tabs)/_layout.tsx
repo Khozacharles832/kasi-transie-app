@@ -37,6 +37,7 @@ export default function TabLayout() {
         name="map"
         options={{
           title: 'Explore',
+          tabBarStyle: {display: 'none'},
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
       />

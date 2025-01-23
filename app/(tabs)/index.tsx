@@ -1,15 +1,59 @@
 import React, { useState } from 'react';
-import { Image, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-
+import {
+  Alert,
+  Image,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { doc, setDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
+import { db } from '../config/firebaseConfig';
+import { useRouter } from 'expo-router';
 
 export default function HomeScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
+
+  const router = useRouter();
+  const auth = getAuth();
 
   const togglePasswordVisibility = () => {
     setPasswordVisible((prev) => !prev);
+  };
+
+  const handleSignUp = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    try {
+      // Create user in Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Store user data in Firestore
+      const userRef = doc(db, 'Users', user.uid); // Using user.uid as document ID
+      await setDoc(userRef, {
+        email: user.email,
+        createdAt: new Date().toISOString(),
+      });
+
+      Alert.alert('Success', 'Sign Up Successful!');
+      
+      // Navigate to Map Screen
+      router.push('/map');
+
+    } catch (error: any) {
+      console.error('Error signing up:', error.message);
+      Alert.alert('Error', error.message);
+    }
   };
 
   return (
@@ -22,7 +66,7 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Kasi-Transie</ThemedText>
+        <ThemedText type="title">Kasi Transie</ThemedText>
       </ThemedView>
 
       {/* Signup Form */}
@@ -34,6 +78,8 @@ export default function HomeScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
+          value={email}
+          onChangeText={(text) => setEmail(text)}
         />
         <View style={styles.passwordContainer}>
           <TextInput
@@ -43,6 +89,8 @@ export default function HomeScreen() {
             secureTextEntry={!passwordVisible}
             autoCapitalize="none"
             autoCorrect={false}
+            value={password}
+            onChangeText={(text) => setPassword(text)}
           />
           <TouchableOpacity onPress={togglePasswordVisibility} style={styles.iconContainer}>
             <ThemedText type="icon">
@@ -51,14 +99,12 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.button}>
+        <TouchableOpacity style={styles.button} onPress={handleSignUp}>
           <ThemedText type="buttonText">Sign Up</ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.loginOption}>
-          <ThemedText type="link">
-            Already have an account? Login
-          </ThemedText>
+          <ThemedText type="link">Already have an account? Login</ThemedText>
         </TouchableOpacity>
       </ThemedView>
     </ParallaxScrollView>
@@ -113,9 +159,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   roundLogo: {
-    height: 100,
-    width: 100,
-    borderRadius: 50, // Makes the logo round
+    height: 200,
+    width: 200,
+    borderRadius: 50,
     alignSelf: 'center',
+    marginTop: 60,
   },
 });
